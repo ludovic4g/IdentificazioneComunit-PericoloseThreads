@@ -25,6 +25,8 @@ def collect_user_data(driver, username):
     time.sleep(5)  # Attesa per il caricamento della pagina
 
     # Raccolta dati utente specifico
+    # username = prova15295
+    # password = 123stella
     user_data = {
         "username": username,
         "followers": [],
