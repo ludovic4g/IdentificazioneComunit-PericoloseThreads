@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -29,20 +30,33 @@ def login_to_threads(driver):
 
 def scroll_to_load_all_elements(driver):
     last_height = driver.execute_script("return document.body.scrollHeight")
+    post_links = set()
+
     while True:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        randmized_sleep(random.uniform(2, 5))  # Randomize sleep time between 2 to 5 seconds
+        randmized_sleep(random.uniform(3, 7))  # Randomize sleep time between 3 to 7 seconds
 
-        # Attendere che i post siano presenti sulla pagina
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '/post/')]"))
-        )
+        # Attesa di 20 secondi per verificare se ci sono ulteriori contenuti da caricare
+        time.sleep(20)
 
         new_height = driver.execute_script("return document.body.scrollHeight")
         if new_height == last_height:
-            break
+            # Un'ultima attesa per assicurarsi che non ci siano più contenuti da caricare
+            time.sleep(5)
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                print("Raggiunta la fine della pagina")
+                break
         last_height = new_height
-        randmized_sleep(random.uniform(2, 5))  # Additional random sleep during scrolling
+
+        # Raccogliere i link dei post presenti sulla pagina dopo ogni scorrimento
+        posts = driver.find_elements(By.XPATH, "//a[contains(@href, '/post/')]")
+        for post in posts:
+            post_links.add(post.get_attribute("href"))
+        print(f"Numero di post raccolti finora: {len(post_links)}")
+        randmized_sleep(random.uniform(3, 7))  # Additional random sleep during scrolling
+
+    return list(post_links)
 
 
 def get_posts_by_tag(driver, tag):
@@ -52,26 +66,11 @@ def get_posts_by_tag(driver, tag):
     # Aggiungere una pausa per consentire il caricamento della pagina
     randmized_sleep(5)
 
-    post_links = set()
-    while True:
-        print("Scorrimento per caricare più post...")
-        scroll_to_load_all_elements(driver)
-
-        posts = driver.find_elements(By.XPATH, "//a[contains(@href, '/post/')]")
-        if not posts:
-            break
-
-        for post in posts:
-            post_links.add(post.get_attribute("href"))
-
-        prev_len = len(post_links)
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        randmized_sleep(random.uniform(2, 5))  # Randomize sleep time between 2 to 5 seconds
-        if len(post_links) == prev_len:
-            break
+    print("Scorrimento per caricare più post...")
+    post_links = scroll_to_load_all_elements(driver)
 
     print(f"Total posts found: {len(post_links)}")
-    return list(post_links)
+    return post_links
 
 
 def get_post_meta(driver, post_url):
