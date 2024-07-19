@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # URL della pagina web
-url = 'https://www.threads.net/@iamfrancescosava/post/C9AqTiUsivp'
+url = 'https://www.threads.net/@giorgiameloni?hl=it'
 
 # Effettua la richiesta HTTP
 response = requests.get(url)
