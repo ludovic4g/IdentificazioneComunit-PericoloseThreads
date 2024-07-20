@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import os
 from utils import randmized_sleep
 
 def setup_driver():
@@ -61,10 +62,10 @@ def collect_followers(driver, username):
         return []
     
 def save_to_file(data, filename):
-    with open(filename, 'w', encoding='utf-8') as file:
+    file_path = os.path.join('followers_extracted', filename)
+    with open(file_path, 'w', encoding='utf-8') as file:
         for item in data:
             file.write(f"{item}\n")
-
 def main():
     driver = setup_driver()
     login_to_threads(driver)
