@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+from utils import randmized_sleep
 
 def setup_driver():
     chrome_options = Options()
@@ -67,6 +68,7 @@ def save_to_file(data, filename):
 def main():
     driver = setup_driver()
     login_to_threads(driver)
+    randmized_sleep(5)
     username = input("Inserire il nome utente di partenza: ")
     followers = collect_followers(driver, username)
 
@@ -78,3 +80,6 @@ def main():
         print("Nessun follower trovato.")
 
     driver.quit()
+
+if __name__ == "__main__":
+    main()  # Avvia l'esecuzione del programma
