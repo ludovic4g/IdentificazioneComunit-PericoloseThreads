@@ -10,13 +10,15 @@ import requests
 from tqdm import tqdm
 from utils import randmized_sleep
 
+# Funzione per inizializzare il driver di Chrome con le opzioni necessarie
 def initialize_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--incognito")
-    chrome_options.add_argument("--window-size=1920x1080")
+    chrome_options.add_argument("--incognito")  # Avvia il browser in modalità incognito
+    chrome_options.add_argument("--window-size=1920x1080")  # Imposta la dimensione della finestra del browser
     driver = webdriver.Chrome(options=chrome_options)
     return driver
 
+# Funzione per ottenere i meta tag della pagina utente
 def fetch_user_page_meta(username):
     url = f"https://www.threads.net/{username}"
     response = requests.get(url)
@@ -39,12 +41,14 @@ def fetch_user_page_meta(username):
         print(f"Errore nella richiesta HTTP: {response.status_code}")
         return None
 
+# Funzione per ottenere i link dei post di un utente
 def fetch_posts_from_user(driver, username):
     url = f"https://www.threads.net/{username}"
     driver.get(url)
-    randmized_sleep(5)
+    randmized_sleep(5)  # Pausa per consentire il caricamento della pagina
 
     post_links = set()
+    # Trova tutti i link dei post nella pagina
     posts = driver.find_elements(By.XPATH, "//a[contains(@href, '/post/')]")
     for post in posts:
         post_links.add(post.get_attribute("href"))
@@ -52,11 +56,13 @@ def fetch_posts_from_user(driver, username):
 
     return list(post_links)
 
+# Funzione per ottenere i meta tag di un post specifico
 def extract_meta_data(driver, post_url):
     try:
         driver.get(post_url)
-        randmized_sleep(random.uniform(5, 10))
+        randmized_sleep(random.uniform(5, 10))  # Pausa casuale per ridurre il rischio di rilevamento
 
+        # Utilizza BeautifulSoup per estrarre i meta tag dalla sorgente della pagina
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         meta_tags = soup.find_all('meta')
 
@@ -77,24 +83,27 @@ def extract_meta_data(driver, post_url):
         print(f"Errore nel recupero dei meta tag del post {post_url}: {e}")
         return None
 
+# Funzione per raccogliere i dati di un utente e dei suoi post
 def gather_data(driver, username):
-    user_meta = fetch_user_page_meta(username)
-    posts = fetch_posts_from_user(driver, username)
+    user_meta = fetch_user_page_meta(username)  # Ottiene i meta tag della pagina utente
+    posts = fetch_posts_from_user(driver, username)  # Ottiene i link dei post dell'utente
     data = []
     for post in tqdm(posts, desc="Fetching post metadata"):
-        details = extract_meta_data(driver, post)
+        details = extract_meta_data(driver, post)  # Estrae i meta tag di ciascun post
         if details:
             data.append(details)
-            randmized_sleep(random.uniform(10, 15))
+            randmized_sleep(random.uniform(10, 15))  # Pausa casuale per ridurre il rischio di rilevamento
     return {"user_meta": user_meta, "posts": data}
 
+# Funzione per salvare i dati in un file JSON
 def save_json_file(data, directory, filename):
-    os.makedirs(directory, exist_ok=True)
+    os.makedirs(directory, exist_ok=True)  # Crea la directory se non esiste
     filepath = os.path.join(directory, filename)
     with open(filepath, 'w') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
     print(f"Data saved to {filepath}")
 
+# Funzione per pulire i meta tag della pagina utente
 def clean_user_meta(user_meta):
     cleaned_meta = {
         "url": user_meta.get("url"),
@@ -111,6 +120,7 @@ def clean_user_meta(user_meta):
             cleaned_meta["image"] = meta.get("content")
     return cleaned_meta
 
+# Funzione per pulire i dati dei post e della pagina utente
 def process_data(data):
     cleaned_data = {
         "user_meta": clean_user_meta(data.get("user_meta", {})),
@@ -133,34 +143,36 @@ def process_data(data):
         cleaned_data["posts"].append(cleaned_entry)
     return cleaned_data
 
+# Funzione per salvare i dati puliti in un file JSON
 def save_processed_data(input_file, output_directory):
     with open(input_file, 'r') as infile:
         data = json.load(infile)
         cleaned_data = process_data(data)
 
-    os.makedirs(output_directory, exist_ok=True)
+    os.makedirs(output_directory, exist_ok=True)  # Crea la directory se non esiste
     output_file = os.path.join(output_directory, os.path.basename(input_file).replace(".json", "_processed.json"))
     with open(output_file, 'w') as outfile:
         json.dump(cleaned_data, outfile, ensure_ascii=False, indent=4)
-    print(f"Cleaned data has been saved to {output_file}")
+    print(f"Dati ripuliti salvati in {output_file}")
 
+# Funzione principale che gestisce l'intero processo
 def main():
-    driver = initialize_driver()
-    randmized_sleep(5)
+    driver = initialize_driver()  # Inizializza il driver
+    randmized_sleep(5)  # Pausa per ridurre il rischio di rilevamento
 
-    username = input("Inserire il nome utente: ")
-    data = gather_data(driver, username)
+    username = input("Inserire il nome utente: ")  # Chiede all'utente di inserire un nome utente
+    data = gather_data(driver, username)  # Raccoglie i dati dell'utente e dei suoi post
     raw_data_directory = "raw_data"
     processed_data_directory = "processed_data"
     raw_data_filename = f"{username}_data.json"
 
-    save_json_file(data, raw_data_directory, raw_data_filename)
+    save_json_file(data, raw_data_directory, raw_data_filename)  # Salva i dati raccolti in un file JSON
 
     raw_data_filepath = os.path.join(raw_data_directory, raw_data_filename)
-    save_processed_data(raw_data_filepath, processed_data_directory)
+    save_processed_data(raw_data_filepath, processed_data_directory)  # Pulisce e salva i dati in un nuovo file JSON
 
-    randmized_sleep(10)
-    driver.quit()
+    randmized_sleep(10)  # Pausa finale per ridurre il rischio di rilevamento
+    driver.quit()  # Chiude il browser
 
 if __name__ == "__main__":
-    main()
+    main()  # Avvia l'esecuzione del programma

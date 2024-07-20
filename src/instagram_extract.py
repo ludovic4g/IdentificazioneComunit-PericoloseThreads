@@ -10,35 +10,39 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 from utils import randmized_sleep
 
+# Funzione per configurare il driver di Chrome con le opzioni necessarie
 def setup_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--incognito")
-    chrome_options.add_argument("--window-size=1920x1080")
+    chrome_options.add_argument("--incognito")  # Avvia il browser in modalità incognito
+    chrome_options.add_argument("--window-size=1920x1080")  # Imposta la dimensione della finestra del browser
     driver = webdriver.Chrome(options=chrome_options)
     return driver
 
+# Funzione per effettuare il login su Instagram
 def login_to_instagram(driver):
     url = "https://www.instagram.com/accounts/login/"
     driver.get(url)
-    # Log-in manuale
+    # Richiede all'utente di effettuare il login manualmente e di premere Enter una volta completato
     print("Effettuare il login manualmente e poi premere Enter...")
     input()
 
+# Funzione per scorrere la pagina verso il basso fino a caricare tutti gli elementi
 def scroll_to_load_all_elements(driver):
     last_height = driver.execute_script("return document.body.scrollHeight")
     while True:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        randmized_sleep(2)
+        randmized_sleep(2)  # Pausa casuale per evitare rilevamenti di bot
         new_height = driver.execute_script("return document.body.scrollHeight")
         if new_height == last_height:
             break
         last_height = new_height
 
+# Funzione per ottenere i link dei post di un determinato hashtag
 def get_posts_by_tag(driver, tag):
     url = f"https://www.instagram.com/explore/tags/{tag}/"
     driver.get(url)
 
-    # Aggiungere una pausa per consentire il caricamento della pagina
+    # Pausa per consentire il caricamento della pagina
     randmized_sleep(5)
 
     post_links = set()
@@ -46,7 +50,7 @@ def get_posts_by_tag(driver, tag):
         print("Scorrimento per caricare più post...")
         scroll_to_load_all_elements(driver)
 
-        # Attendere che i post siano presenti sulla pagina
+        # Attende che i post siano presenti sulla pagina
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '/p/')]"))
         )
@@ -64,15 +68,16 @@ def get_posts_by_tag(driver, tag):
         if len(post_links) == prev_len:
             break
 
-    print(f"Total posts found: {len(post_links)}")
+    print(f"Post totali trovati: {len(post_links)}")
     return list(post_links)
 
+# Funzione per ottenere i meta tag di un post specifico
 def get_post_meta(driver, post_url):
     try:
         driver.get(post_url)
-        randmized_sleep(2)  # Aggiungere una pausa per ridurre il rischio di rilevamento
+        randmized_sleep(2)  # Pausa per ridurre il rischio di rilevamento
 
-        # Utilizza BeautifulSoup per estrarre i meta tag
+        # Utilizza BeautifulSoup per estrarre i meta tag dalla sorgente della pagina
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         meta_tags = soup.find_all('meta')
 
@@ -93,6 +98,7 @@ def get_post_meta(driver, post_url):
         print(f"Errore nel recupero dei meta tag del post {post_url}: {e}")
         return None
 
+# Funzione per raccogliere i dati dei post di un determinato hashtag
 def fetch_data(driver, tag):
     posts = get_posts_by_tag(driver, tag)
     data = []
@@ -100,24 +106,26 @@ def fetch_data(driver, tag):
         details = get_post_meta(driver, post)
         if details:
             data.append(details)
-            randmized_sleep(2)  # Aggiungere una pausa per ridurre il rischio di rilevamento
+            randmized_sleep(2)  # Pausa per ridurre il rischio di rilevamento
     return data
 
+# Funzione per salvare i dati raccolti in un file JSON
 def save_to_file(data, filename):
     with open(filename, 'w') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
+# Funzione principale che gestisce l'intero processo
 def main():
-    driver = setup_driver()
-    login_to_instagram(driver)
-    randmized_sleep(5)  # Aggiungere una pausa dopo il login per ridurre il rischio di rilevamento
+    driver = setup_driver()  # Configura il driver
+    login_to_instagram(driver)  # Effettua il login su Instagram
+    randmized_sleep(5)  # Pausa dopo il login per ridurre il rischio di rilevamento
 
-    tag = input("Enter the hashtag to search: ")
-    data = fetch_data(driver, tag)
-    save_to_file(data, f"{tag}_data.json")
+    tag = input("Inserire hashtag da cercare: ")  # Chiede all'utente di inserire un hashtag
+    data = fetch_data(driver, tag)  # Raccoglie i dati dei post con quell'hashtag
+    save_to_file(data, f"{tag}_data.json")  # Salva i dati in un file JSON
     print(f"Data saved to {tag}_data.json")
 
-    driver.quit()
+    driver.quit()  # Chiude il browser
 
 if __name__ == "__main__":
-    main()
+    main()  # Avvia l'esecuzione del programma
